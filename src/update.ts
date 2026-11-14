@@ -31,7 +31,10 @@ export { detachHandoffStdin }
 
 const PACKAGE_NAME = '@deepseek-harness-tui/dsh-tui'
 const DEFAULT_REGISTRY = 'https://registry.npmjs.org'
-const GITHUB_REPO = 'ccch1mneyyy/dsh-TUI'
+// OUR FORK (operator 2026-11-13: "make it our own version"): updates never come from upstream or npm. The fork
+// ttvdblock716-bot/dsh-TUI is updated by pulling upstream into it after a scan, then rebuilding from source.
+const GITHUB_REPO = 'ttvdblock716-bot/dsh-TUI'
+const FORK_UPDATES_OFF = true
 const UPDATE_CHECK_TIMEOUT_MS = 4000
 const STANDALONE_DOWNLOAD_TIMEOUT_MS = 300000
 /**
@@ -391,6 +394,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 /** Fetch `latest` from a registry; undefined on any failure. */
 async function fetchLatestVersion(registryBase: string, signal?: AbortSignal): Promise<string | undefined> {
+  if (FORK_UPDATES_OFF) return undefined // our fork: no registry version check (see GITHUB_REPO)
   if (signal?.aborted) return undefined
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), UPDATE_CHECK_TIMEOUT_MS)
@@ -534,6 +538,7 @@ async function probeChecksumManifestUrl(url: string, signal?: AbortSignal): Prom
  *   failure.
  */
 export async function fetchGithubLatestRelease(options: GithubReleaseQuery = {}): Promise<{ version: string; downloadUrl?: string; checksumUrl?: string } | undefined> {
+  if (FORK_UPDATES_OFF) return undefined // our fork: no release download (see GITHUB_REPO)
   if (options.signal?.aborted) return undefined
   const doFetch = options.fetchImpl ?? fetch
   const controller = new AbortController()
@@ -4055,6 +4060,10 @@ export async function updateTuiAndRestart(
  * @returns Process exit code: 0 on success or already-latest, 1 otherwise.
  */
 export async function cliUpdate(profile: string): Promise<number> {
+  if (FORK_UPDATES_OFF) {
+    process.stderr.write('dsh-tui: our fork (ttvdblock716-bot/dsh-TUI) updates from source only: pull upstream into the fork after a scan, then rebuild.\n')
+    return 1
+  }
   const plan = await resolveUpdatePlan()
   const state = updatePlanState(plan)
   if (state === 'blocked') {
